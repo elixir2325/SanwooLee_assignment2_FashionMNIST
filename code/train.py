@@ -7,7 +7,7 @@
 import argparse
 import os
 from fmnist_dataset import load_fashion_mnist
-from model import CNN
+from model import CNN, SimpleResNet
 
 import torch
 import torch.nn as nn
@@ -39,6 +39,7 @@ def trainEpochs(classifier, optimizer, loss_fn, epochs, training_set, dev_set,
             
             optimizer.zero_grad()
             x, y = gettensor(x, y, device)
+
             logits = classifier(x)
             loss = loss_fn(logits, y)
             loss.backward()
@@ -80,36 +81,28 @@ def evaluate(classifier, dataset, device):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', type=str, default='-1')
-    parser.add_argument('--save_dir', type=str, default='../model')
+    # parser.add_argument('--gpu', type=str, default='-1')
+    parser.add_argument('--save_dir', type=str, default='./resnet_checkpoints')
     parser.add_argument('--dataset_dir', type=str, default='../data')
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--eval_batch_size', type=int, default=1000)
     parser.add_argument('--num_epochs', type=int, default=20)
-    parser.add_argument('--learning_rate', type=float, default=1e-4)
+    parser.add_argument('--learning_rate', type=float, default=2e-4)
     parser.add_argument('--rand_seed', type=int, default=42)
     parser.add_argument('--log_per_step', type=int, default=100)
-    args = parser.parse_args()
     
     opt = parser.parse_args()
-    
-    if int(opt.gpu) < 0:
-        device = torch.device('cpu')
-        torch.manual_seed(opt.rand_seed)
-    else:
-        os.environ["CUDA_VISIBLE_DEVICES"] = opt.gpu
-        device = torch.device("cuda")
-        torch.manual_seed(opt.rand_seed)
-        torch.cuda.manual_seed(opt.rand_seed)
-        
+    torch.manual_seed(opt.rand_seed)
+    torch.cuda.manual_seed(opt.rand_seed)
     random.seed(opt.rand_seed)
+    device = "cuda"
     
     train, dev, _ = load_fashion_mnist("../data", random=random)
     train_dataloader = DataLoader(train, batch_size=opt.batch_size, drop_last=True)
     dev_dataloader = DataLoader(dev, batch_size=opt.eval_batch_size)
 
     
-    classifier = CNN()
+    classifier = SimpleResNet().cuda()
     optimizer = optim.Adam(classifier.parameters(), lr=opt.learning_rate)
     criterion = nn.CrossEntropyLoss()
 
